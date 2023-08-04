@@ -1,7 +1,6 @@
 package algorithm
 
 import (
-	"TSPs_Hopfield/usages"
 	"fmt"
 	"math"
 )
@@ -90,7 +89,7 @@ func (t *TSP) HopfieldEnergy(states [][]int, A, B, C, D float64) float64 {
 		for i := 0; i < t.N; i++ {
 			for Y := 0; Y < t.N; Y++ {
 				if Y != X {
-					energyObj += 0.5 * t.Distance(t.Cities[X], t.Cities[i]) * float64(states[X][Y]) * (float64(states[Y][(i+1)%t.N]) + float64(states[Y][(i-1+t.N)%t.N]))
+					energyObj += 0.5 * t.Distance(t.Cities[X], t.Cities[Y]) * float64(states[X][i]) * (float64(states[Y][(i+1)%t.N]) + float64(states[Y][(i-1+t.N)%t.N]))
 				}
 			}
 		}
@@ -138,7 +137,7 @@ func (t *TSP) HopfieldEnergyGeneral(states [][]int, weights [][]float64, A, B, C
 	first_oder := 0.0
 	for X := 0; X < t.N; X++ {
 		for i := 0; i < t.N; i++ {
-			first_oder += float64(states[X][i])
+			first_oder += -C*float64(t.N) * float64(states[X][i])
 			for Y := 0; Y < t.N; Y++ {
 				for j := 0; j < t.N; j++ {
 					second_order += weights[X*t.N+i][Y*t.N+j] * float64(states[X][i]) * float64(states[Y][j])
@@ -146,13 +145,13 @@ func (t *TSP) HopfieldEnergyGeneral(states [][]int, weights [][]float64, A, B, C
 			}
 		}
 	}
-	energy := -0.5*second_order + -C*float64(t.N) * first_oder
+	energy := -0.5*second_order + first_oder
 	return energy
 }
 
 // Dynamic function to update states until convergence
 func (t *TSP) HopfieldDynamic(states [][]int, weights [][]float64, A, B, C, D, convergenceThreshold float64) {
-    maxIterations := 1000 // Maximum number of iterations to prevent infinite loops
+    maxIterations := 10 // Maximum number of iterations to prevent infinite loops
 
     for iteration := 0; iteration < maxIterations; iteration++ {
         energyBefore := t.HopfieldEnergyGeneral(states, weights, A, B, C, D)
@@ -193,38 +192,6 @@ func (t *TSP) HopfieldDynamic(states [][]int, weights [][]float64, A, B, C, D, c
         states = updatedStates
     }
 }
-
-func (t* TSP) HopfieldDynamicGeneral (states [][]int, A, B, C, D float64) float64 {
-	theta := 0.0
-	// Iterate through rows and columns to update neuron states
-	for X := 0; X < t.N; X++ {
-		for i := 0; i < t.N; i++ {
-			// Step 1: Calculate the input to the neuron
-			input := 0.0
-			for j := 0; j < t.N; j++ {
-				if i != j {
-					input += A * float64(states[X][j])
-				}
-			}
-			for Y := 0; Y < t.N; Y++ {
-				if X != Y {
-					input += B * float64(states[Y][i])
-					input += t.Distance(t.Cities[X], t.Cities[Y]) * float64(states[Y][(i-1+t.N)%t.N] + states[Y][(i+1)%t.N])
-				}
-			}
-			input += C * (usages.SumAllStates(states) - float64(t.N))
-
-			// Step 2: Apply the threshold function
-			if input > theta {
-				states[X][i] = 1
-			} else {
-				states[X][i] = 0
-			}
-		}
-	}
-	return 0.0
-}
-
 
 // Helper function to calculate the sum of distances between adjacent cities
 func sumAdjacentDistances(t *TSP, states [][]int, X, i int) float64 {
